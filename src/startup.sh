@@ -239,6 +239,90 @@ if [ $LOG -eq 1 ]; then echo -e $MSG; fi
 HOMEDIR=$HOME
 fi
 
+################################
+# do not source fsl
+flag="--xfsl"
+default="False"
+opts_CheckFlagBasic $flag $@
+FlagExists=`echo $?`
+if [ $FlagExists -eq 1 ]
+then  
+  PARAMPOS=`opts_findflag $flag $@`
+  if  [ $PARAMPOS -le $POS ] 
+  then
+     opts_CheckFlag $flag $@
+     FlagExists=`echo $?`
+     if [ $FlagExists -eq 1 ] 
+     then 
+         XFSL=`opts_GetOpt1 $flag $@`
+     else
+        # flag passed but without = sign; decide what to do next
+         XFSL=`opts_DefaultOpt $XFSL True`
+     fi
+  else
+    XFSL=`opts_DefaultOpt $XFSL $default`
+  fi
+else
+# flag wasn't passed - what do you want to do?
+XFSL=`opts_DefaultOpt $XFSL $default`
+fi
+
+################################
+# do not source freesurfer
+flag="--xfree"
+default="False"
+opts_CheckFlagBasic $flag $@
+FlagExists=`echo $?`
+if [ $FlagExists -eq 1 ]
+then  
+  PARAMPOS=`opts_findflag $flag $@`
+  if  [ $PARAMPOS -le $POS ] 
+  then
+     opts_CheckFlag $flag $@
+     FlagExists=`echo $?`
+     if [ $FlagExists -eq 1 ] 
+     then 
+        XFREE=`opts_GetOpt1 $flag $@`
+     else
+        # flag passed but without = sign; decide what to do next
+        XFREE=`opts_DefaultOpt $XFREE True`
+     fi
+  else
+    XFREE=`opts_DefaultOpt $XFREE $default`
+  fi
+else
+# flag wasn't passed - what do you want to do?
+XFREE=`opts_DefaultOpt $XFREE $default`
+fi
+
+################################
+# quick fix for libpriority of mrview
+flag="--mrmode"
+default="False"
+opts_CheckFlagBasic $flag $@
+FlagExists=`echo $?`
+if [ $FlagExists -eq 1 ]
+then  
+  PARAMPOS=`opts_findflag $flag $@`
+  if  [ $PARAMPOS -le $POS ] 
+  then
+     opts_CheckFlag $flag $@
+     FlagExists=`echo $?`
+     if [ $FlagExists -eq 1 ] 
+     then 
+        MRMODE=`opts_GetOpt1 $flag $@`
+     else
+        # flag passed but without = sign; decide what to do next
+        MRMODE=`opts_DefaultOpt $MRMODE True`
+     fi
+  else
+    MRMODE=`opts_DefaultOpt $MRMODE $default`
+  fi
+else
+# flag wasn't passed - what do you want to do?
+MRMODE=`opts_DefaultOpt $MRMODE $default`
+fi
+
 #################################
 # Path Priority 
 flag="--pathpriority"
@@ -388,25 +472,44 @@ then
 # flag wasn't passed - ignore
 fi
 
+#################################
+# SourcePost
+flag="--sourcepost"
+default=""
+SOURCEPOSTPASSED="False"
+opts_CheckFlagBasic $flag $@
+FlagExists=`echo $?`
+if [ $FlagExists -eq 1 ]
+then
+  PARAMPOS=`opts_findflag $flag $@`
+  if  [ $PARAMPOS -le $POS ]   
+  then  
+      opts_CheckFlag $flag $@
+      FlagExists=`echo $?`
+      if [ $FlagExists -eq 1 ]
+      then 
+         SOURCEPOST=`opts_GetOpt1 $flag $@`
+         if [ ! -f $SOURCEPOST ]
+         then
+            MSG="$SOURCEPOST not accessible as a file"
+            if [ $LOG -eq 1 ]; then echo -e $MSG; fi
+         else
+            SOURCEPOSTPASSED="True"
+         fi
+      else
+         # flag passed but without = sign; ignore
+         MSG="--retrieve needs an included path"
+         if [ $LOG -eq 1 ]; then echo -e $MSG; fi
+      fi
+    
+  fi
+#else
+# flag wasn't passed - ignore
+fi
+
 
 ######################################
 # act on flags
-# --pathpriority
-if [ $PATHPRIORITYPASSED = "True" ]
-then
-   export PATH=$PATHPRIORITY:$PATH
-   MSG="Current PATH shown below:\n$PATH"
-   if [ $LOG -eq 1 ]; then echo -e $MSG; fi
-fi
-
-# --libpriority
-if [ $LIBPRIORITYPASSED = "True" ]
-then
-   export LD_LIBRARY_PATH=$LIBPRIORITY:$LD_LIBRARY_PATH
-   MSG="Current LD_LIBRARY_PATH shown below:\n$LD_LIBRARY_PATH"
-   if [ $LOG -eq 1 ]; then echo -e $MSG; fi
-fi
-
 
 # --workdir
 MSG="Navigating to $WORKDIR"
@@ -447,15 +550,50 @@ then
    . $SOURCEPRE
 fi
 
-if [ -f  $FREESURFER_HOME/SetUpFreeSurfer.sh ]
+if [ -f  $FREESURFER_HOME/SetUpFreeSurfer.sh ] && [ $XFREE = "False" ]
 then 
     . $FREESURFER_HOME/SetUpFreeSurfer.sh
 fi
 
-if [ -f  $FSLDIR/etc/fslconf/fsl.sh ]
+if [ -f  $FSLDIR/etc/fslconf/fsl.sh ] && [ $XFSL = "False" ]
 then 
     . $FSLDIR/etc/fslconf/fsl.sh
 fi
+
+# --sourcepre
+if [ $SOURCEPOSTPASSED = "True" ]
+then
+   MSG="Sourcing $SOURCEPOST"
+   if [ $LOG -eq 1 ]; then echo -e $MSG; fi
+   . $SOURCEPOST
+fi
+
+
+# --pathpriority
+if [ $PATHPRIORITYPASSED = "True" ]
+then
+   export PATH=$PATHPRIORITY:$PATH
+   MSG="Current PATH shown below:\n$PATH"
+   if [ $LOG -eq 1 ]; then echo -e $MSG; fi
+fi
+
+# --libpriority
+if [ $LIBPRIORITYPASSED = "True" ]
+then
+   export LD_LIBRARY_PATH=$LIBPRIORITY:$LD_LIBRARY_PATH
+   MSG="Current LD_LIBRARY_PATH shown below:\n$LD_LIBRARY_PATH"
+   if [ $LOG -eq 1 ]; then echo -e $MSG; fi
+fi
+
+# --libpriority
+if [ $MRMODE = "True" ]
+then
+   MRVIEWLIB=/opt/fsl/lib
+   export LD_LIBRARY_PATH=${MRVIEWLIB}:$LD_LIBRARY_PATH
+   MSG="MRMODE invoked by prioritizing ${MRVIEWLIB}. Current LD_LIBRARY_PATH shown below:\n$LD_LIBRARY_PATH"
+   if [ $LOG -eq 1 ]; then echo -e $MSG; fi
+fi
+
 
 if [ $POS -gt 0 ]
 then

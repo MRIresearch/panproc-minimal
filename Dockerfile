@@ -193,20 +193,6 @@ RUN fs_install_mcr R2014b
 
 
 
-
-#############################
-# Core Python Libraries
-##############################
-
-RUN pip install numpy==1.26.1 \
-                scipy==1.11.3 \ 
-                nibabel==5.1.0 \
-                pydicom==2.4.3 \
-                pybids==0.16.3 \
-                matplotlib==3.8.0 
-
-
-
 ##########################
 # cmake for ANTS install
 #########################
@@ -260,6 +246,26 @@ RUN cd /opt && \
 
 ENV PATH=/opt/workbench/bin_linux64:$PATH
 
+
+#############################
+# Core Python Libraries
+##############################
+# make miniconda the first environment for pythin library consistency
+ENV PATH=${MINICONDA_HOME}/bin:${PATH}
+RUN pip install nipype==1.8.6 \
+                nibabel==5.1.0 \
+                numpy==1.26.1 \
+                scipy==1.11.3 \ 
+                pydicom==2.4.3 \
+                pybids==0.16.3 \
+                pandas==2.1.2 \
+                nilearn==0.10.2 \
+                nitransforms==23.0.1 \
+                templateflow==23.1.0 \
+                xnat==0.5.2 \
+                matplotlib==3.8.1
+
+
 ############################
 # HOME DIRECTORY
 ###########################
@@ -294,6 +300,13 @@ RUN rm -rf /tmp/*
 RUN rm -rf /opt/tmp/*
 
 ENV NVIDIA_VISIBLE_DEVICES=all
+
+###############################
+# LAST UPDATES
+# 
+################################
+# updates to container go here
+ENV PATH=${PATH}:$FSLDIR/bin
 
 RUN ldconfig
 WORKDIR /opt/work
