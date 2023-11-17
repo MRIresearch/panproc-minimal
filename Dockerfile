@@ -165,7 +165,7 @@ RUN git clone https://github.com/MRtrix3/mrtrix3.git && \
 
 
 ############################
-# FREESURFER 7.1.1
+# FREESURFER 7.3.2
 ###########################
 WORKDIR /opt
 ENV LD_LIBRARY_PATH=/opt/freesurfer/lib/qt/lib:/opt/freesurfer/mni/lib:${LD_LIBRARY_PATH}
@@ -180,9 +180,9 @@ ENV FREESURFER_HOME=/opt/freesurfer
 ENV FS_LICENSE=${FREESURFER_HOME}/license.txt
 ENV PATH=$FREESURFER_HOME/bin:$FREESURFER_HOME/mni/bin:$FREESURFER_HOME/tktools:$PATH
 
-RUN wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.1.1/freesurfer-linux-centos6_x86_64-7.1.1.tar.gz && \
-    tar xz -f freesurfer-linux-centos6_x86_64-7.1.1.tar.gz && \
-    rm /opt/freesurfer-linux-centos6_x86_64-7.1.1.tar.gz 
+RUN wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2/freesurfer-linux-ubuntu20_amd64-7.3.2.tar.gz && \
+    tar xz -f freesurfer-linux-ubuntu20_amd64-7.3.2.tar.gz && \
+    rm /opt/freesurfer-linux-ubuntu20_amd64-7.3.2.tar.gz 
 
 # create symbolic link as tkregister not provided in Freesurfer 7.1.1
 RUN ln -s /opt/freesurfer/tktools/tkregister2.tcl /opt/freesurfer/tktools/tkregister.tcl && \
@@ -302,11 +302,29 @@ RUN rm -rf /opt/tmp/*
 ENV NVIDIA_VISIBLE_DEVICES=all
 
 ###############################
-# LAST UPDATES
+# LAST UPDATES - consider moving to correct sections
 # 
 ################################
-# updates to container go here
+# Add full path to FSLDIR/bin here to avoid conflict with conda above
 ENV PATH=${PATH}:$FSLDIR/bin
+
+# add some more bind points
+RUN mkdir -p /input /output /work /subjects_dir /rental
+
+# Freesurfer 7.3.2 Patch
+ENV FREESURFER=${FREESURFER_HOME}
+RUN  wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2-patch/mri_sclimbic/mri_sclimbic_seg && \
+     mv mri_sclimbic_seg $FREESURFER/python/scripts/mri_sclimbic_seg && \
+     chmod +x $FREESURFER/python/scripts/mri_sclimbic_seg && \
+     wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2-patch/segment_subregions/core.py && \
+     mv core.py $FREESURFER/python/packages/freesurfer/subregions && \
+     wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2-patch/synthsr/mri_synthsr && \
+     mv mri_synthsr $FREESURFER_HOME/python/scripts/mri_synthsr && \
+     echo "PlaceMMPialSurf --mm_min_inside 50 --mm_max_inside 200 --mm_min_outside 10 --mm_max_outside 5" > /subjects_dir/global-expert-options.txt
+
+
+# install correct mcr for freesurfer subregion segmentation
+RUN fs_install_mcr R2019b
 
 RUN ldconfig
 WORKDIR /opt/work
