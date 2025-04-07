@@ -247,23 +247,34 @@ RUN cd /opt && \
 ENV PATH=/opt/workbench/bin_linux64:$PATH
 
 
+
 #############################
 # Core Python Libraries
 ##############################
-# make miniconda the first environment for pythin library consistency
+# make miniconda the first environment for python library consistency
 ENV PATH=${MINICONDA_HOME}/bin:${PATH}
 RUN pip install nipype==1.8.6 \
-                nibabel==5.1.0 \
-                numpy==1.26.1 \
-                scipy==1.11.3 \ 
-                pydicom==2.4.3 \
-                pybids==0.16.3 \
-                pandas==2.1.2 \
+                nibabel==5.2.0 \
+                numpy==1.26.3 \
+                scipy==1.11.4 \ 
+                pydicom==2.4.4 \
+                pybids==0.16.4 \
+                pandas==2.1.4 \
                 nilearn==0.10.2 \
                 nitransforms==23.0.1 \
                 templateflow==23.1.0 \
-                xnat==0.5.2 \
-                matplotlib==3.8.1
+                xnat==0.5.3 \
+                matplotlib==3.8.1 \
+                sdcflows==2.8.1 \
+                mne[hdf5]==1.1.0 \
+                vtk==9.3.0 \
+                pyvista==0.43.4
+
+###############################
+# Install latest panpipelines
+# 
+################################
+RUN pip install panpipelines==1.0.9q
 
 
 ############################

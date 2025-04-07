@@ -6,3 +6,6 @@
 
 # freesurfer License file
 *.txt
+
+# source files
+*.tar.gz

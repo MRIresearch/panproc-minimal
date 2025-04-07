@@ -560,6 +560,9 @@ then
     . $FSLDIR/etc/fslconf/fsl.sh
 fi
 
+# Make MINICONDA first 
+export PATH=${MINICONDA_HOME}/bin:${PATH}
+
 # --sourcepre
 if [ $SOURCEPOSTPASSED = "True" ]
 then
