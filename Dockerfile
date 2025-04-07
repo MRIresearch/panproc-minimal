@@ -274,7 +274,7 @@ RUN pip install nipype==1.8.6 \
 # Install latest panpipelines
 # 
 ################################
-RUN pip install panpipelines==1.0.9q
+RUN pip install panpipelines==1.0.9
 
 
 ############################
