@@ -1,0 +1,12 @@
+panproc-apps v0.1 build: 03/07/2025
+
+
+Container for running PAN apps associated with panpipelines: 
+------------------------------------------------------------------------------ 
+	* amico 2.1.0 
+	* mne 1.1.0
+
+
+References 
+----------------- 
+	* Github: https://github.com/MRIresearch/panproc-apps
