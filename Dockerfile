@@ -7,7 +7,8 @@ ENV DEBIAN_FRONTEND noninteractive
 ##########################
 # CREATE BIND and CUSTOM FOLDERS
 ###########################
-RUN mkdir -p /xdisk /groups /opt/data /opt/bin /opt/tmp /opt/work /opt/input /opt/output /opt/config /opt/ohpc /cm/shared /cm/local
+RUN mkdir -p /xdisk /groups /opt/data /opt/bin /opt/tmp /opt/work /opt/input /opt/output /opt/config /opt/ohpc /cm/shared /cm/local &&\ 
+    mkdir -p /input /output /work /subjects_dir /rental
 
 ##########################
 # BASE PACKAGES and LOCALE
@@ -38,34 +39,6 @@ RUN export LC_ALL=en_US.UTF-8
 
 
 ############################
-# CUDA 9.1
-############################
-WORKDIR /opt/tmp
-ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/lib:$LD_LIBRARY_PATH
-RUN wget https://developer.nvidia.com/compute/cuda/9.1/Prod/local_installers/cuda_9.1.85_387.26_linux && \
-    mkdir -p nvidia_installers && \
-    chmod +x cuda_9.1.85_387.26_linux && \
-    ./cuda_9.1.85_387.26_linux -extract=`pwd`/nvidia_installers && \
-    rm cuda_9.1.85_387.26_linux && \
-    cd nvidia_installers && \
-    ./cuda*.run --tar mxvf && \
-    cp InstallUtils.pm /usr/lib/x86_64-linux-gnu/perl-base  && \
-    rm cuda-samples* && \
-    rm NVIDIA-Linux* && \
-    ./cuda-linux.9.1.85-23083092.run -noprompt && \
-    wget https://developer.nvidia.com/compute/cuda/9.1/Prod/patches/1/cuda_9.1.85.1_linux && \
-    chmod +x cuda_9.1.85.1_linux && \
-    ./cuda_9.1.85.1_linux --silent -accept-eula && \
-    wget https://developer.nvidia.com/compute/cuda/9.1/Prod/patches/2/cuda_9.1.85.2_linux && \
-    chmod +x cuda_9.1.85.2_linux && \
-    ./cuda_9.1.85.2_linux --silent -accept-eula && \
-    wget https://developer.nvidia.com/compute/cuda/9.1/Prod/patches/3/cuda_9.1.85.3_linux && \
-    chmod +x cuda_9.1.85.3_linux && \
-    ./cuda_9.1.85.3_linux --silent -accept-eula && \
-    cd .. && \
-    rm -R nvidia_installers
-
-############################
 # MINICONDA and Python
 ############################
 WORKDIR /opt/tmp
@@ -77,9 +50,8 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py310_23.9.0-0-Linux-x86
     /bin/bash ./Miniconda3-py310_23.9.0-0-Linux-x86_64.sh -b -p ${MINICONDA_HOME} -f && \
     conda install -y pip
 
-
 #################################################################################
-# FSL 6.0.7.4
+# FSL 6.0.7.16
 #
 # To install FSL versions < 6.0.6 then use fslinstaller_old.py or grab from cloud
 #  wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fslinstaller.py
@@ -89,47 +61,28 @@ RUN apt  install -y  freeglut3 \
                         libfontconfig1 \
                         libxrender1
 
-ENV FSLVER="6.0.7.4"
+ENV FSLVER="6.0.7.16"
 ENV FSLDIR=/opt/fsl
 
-COPY ./src/fslinstaller.py /opt/tmp
-RUN python fslinstaller.py -q -d $FSLDIR -V 6.0.7.4
+RUN wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fslinstaller.py
+RUN python /opt/tmp/fslinstaller.py -q -d $FSLDIR -V $FSLVER
 
 #change from sh to bash in randomize_parallel
 RUN  cp /opt/fsl/bin/randomise_parallel /opt/fsl/bin/old_randomise_parallel && \
      sed -i "s^bin/sh^bin/bash^g" /opt/fsl/bin/randomise_parallel
 
 ENV LD_LIBRARY_PATH=$FSLDIR/lib:$LD_LIBRARY_PATH
+ENV PATH=$FSLDIR/share/fsl/bin:$PATH
 ENV FSLOUTPUTTYPE=NIFTI_GZ
 
-##########################################################################################
-#install probtrackx2 for CUDA 9.1 - note that the commented link below for FSL 5.* versions
-# #wget http://users.fmrib.ox.ac.uk/~moisesf/Probtrackx_GPU/CUDA_9.1/probtrackx2_gpu.zip
-#the link that is used below is for FSL 6.* versions.
-#################################################################
 
-RUN mkdir -p /opt/tmp/probtrackx && \
-    cd /opt/tmp/probtrackx && \
-    wget http://users.fmrib.ox.ac.uk/~moisesf/Probtrackx_GPU/FSL_6/CUDA_9.1/probtrackx2_gpu.zip && \
-    unzip probtrackx2_gpu.zip && \
-    rm -f probtrackx2_gpu.zip && \
-    mv probtrackx2_gpu $FSLDIR/bin
+###############################
+# Install X11 libraries
+#
+###############################
+RUN apt install -y libx11-dev \
+                libxft2
 
-
-###########################################################################################
-#install bedpostx for CUDA 9.1 - note that the commented link is for FSL 5.* versions
-# #wget http://users.fmrib.ox.ac.uk/~moisesf/Bedpostx_GPU/CUDA_9.1/bedpostx_gpu.zip
-#the link that is used below is for FSL 6.* versions.
-#########################################################################################
-
-RUN mkdir -p /opt/tmp/bedpost && \
-    cd /opt/tmp/bedpost && \
-    wget http://users.fmrib.ox.ac.uk/~moisesf/Bedpostx_GPU/FSL_6/CUDA_9.1/bedpostx_gpu.zip && \
-    unzip bedpostx_gpu.zip && \
-    rm -f bedpostx_gpu.zip && \
-    cp /opt/tmp/bedpost/bin/* $FSLDIR/bin && \ 
-    cp /opt/tmp/bedpost/lib/* $FSLDIR/lib && \
-    sed -i 's\#!/bin/sh\#!/bin/bash\g' $FSLDIR/bin/bedpostx_postproc_gpu.sh
 
 ##################################################
 #  Issues faced with git clone
@@ -156,7 +109,6 @@ RUN apt install -y dc \
         libfftw3-dev \
         libpng-dev
 
-ENV LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}
 RUN git clone https://github.com/MRtrix3/mrtrix3.git && \
     cd /opt/mrtrix3  && \
     git checkout 3.0.4 && \
@@ -188,8 +140,20 @@ RUN wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2/freesurfer
 RUN ln -s /opt/freesurfer/tktools/tkregister2.tcl /opt/freesurfer/tktools/tkregister.tcl && \
     ln -s /opt/freesurfer/bin/tkregister2 /opt/freesurfer/bin/tkregister
 
-# install matlab runtime for freesurfer subnucleic segmentation of hippocampus
-RUN fs_install_mcr R2014b
+# Freesurfer 7.3.2 Patch
+ENV FREESURFER=${FREESURFER_HOME}
+RUN  wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2-patch/mri_sclimbic/mri_sclimbic_seg && \
+     mv mri_sclimbic_seg $FREESURFER/python/scripts/mri_sclimbic_seg && \
+     chmod +x $FREESURFER/python/scripts/mri_sclimbic_seg && \
+     wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2-patch/segment_subregions/core.py && \
+     mv core.py $FREESURFER/python/packages/freesurfer/subregions && \
+     wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2-patch/synthsr/mri_synthsr && \
+     mv mri_synthsr $FREESURFER_HOME/python/scripts/mri_synthsr && \
+     echo "PlaceMMPialSurf --mm_min_inside 50 --mm_max_inside 200 --mm_min_outside 10 --mm_max_outside 5" > /subjects_dir/global-expert-options.txt
+
+
+# install correct mcr for freesurfer subregion segmentation
+RUN fs_install_mcr R2019b
 
 
 
@@ -247,7 +211,6 @@ RUN cd /opt && \
 ENV PATH=/opt/workbench/bin_linux64:$PATH
 
 
-
 #############################
 # Core Python Libraries
 ##############################
@@ -276,7 +239,6 @@ RUN pip install nipype==1.8.6 \
 ################################
 RUN pip install panpipelines==1.0.9
 
-
 ############################
 # HOME DIRECTORY
 ###########################
@@ -296,6 +258,40 @@ ENV USER=aacazxnat
 
 RUN mkdir -p /home/aacazxnat/matlab
 
+##################################
+#  install itk and c3d
+#
+##################################
+
+COPY ./src/itksnap-4.2.2-20241202-Linux-x86_64.tar.gz /
+RUN mkdir /opt/itksnap &&\
+    cd /opt/itksnap   &&\
+    mv /itksnap-4.2.2-20241202-Linux-x86_64.tar.gz ./ &&\
+    tar -zxvf itksnap-4.2.2-20241202-Linux-x86_64.tar.gz &&\
+    rm itksnap-4.2.2-20241202-Linux-x86_64.tar.gz &&\
+    cp -R itksnap-4.2.2-20241202-Linux-x86_64/* . &&\
+    rm -R itksnap-4.2.2-20241202-Linux-x86_64 
+ENV PATH=/opt/itksnap/bin:$PATH
+
+COPY ./src/c3d-1.0.0-Linux-x86_64.tar.gz /
+RUN mkdir /opt/c3dstable &&\
+    cd /opt/c3dstable   &&\
+    mv /c3d-1.0.0-Linux-x86_64.tar.gz ./ &&\
+    tar -zxvf c3d-1.0.0-Linux-x86_64.tar.gz &&\
+    rm c3d-1.0.0-Linux-x86_64.tar.gz &&\
+    cp -R c3d-1.0.0-Linux-x86_64/* . &&\
+    rm -R c3d-1.0.0-Linux-x86_64 
+ENV PATH=/opt/c3dstable/bin:$PATH
+
+
+COPY ./src/c3d-nightly-Linux-gcc64.tar.gz /
+RUN mkdir /opt/c3dv142 &&\
+    cd /opt/c3dv142   &&\
+    mv /c3d-nightly-Linux-gcc64.tar.gz ./ &&\
+    tar -zxvf c3d-nightly-Linux-gcc64.tar.gz &&\
+    rm c3d-nightly-Linux-gcc64.tar.gz &&\
+    cp -R c3d-1.4.2-Linux-gcc64/* . &&\
+    rm -R c3d-1.4.2-Linux-gcc64
 
 ############################
 # STARTUP and CLEANUP and CONFIG
@@ -305,6 +301,7 @@ COPY ./src/license.txt ${FREESURFER_HOME}
 COPY ./src/readme /opt/bin
 COPY ./src/version /opt/bin 
 COPY ./src/startup.m /home/aacazxnat/matlab/
+
 ENV PATH=/opt/bin:$PATH
 
 RUN rm -rf /tmp/*
@@ -312,34 +309,12 @@ RUN rm -rf /opt/tmp/*
 
 ENV NVIDIA_VISIBLE_DEVICES=all
 
-###############################
-# LAST UPDATES - consider moving to correct sections
-# 
-################################
-# Add full path to FSLDIR/bin here to avoid conflict with conda above
-ENV PATH=${PATH}:$FSLDIR/bin
 
-# add some more bind points
-RUN mkdir -p /input /output /work /subjects_dir /rental
-
-# Freesurfer 7.3.2 Patch
-ENV FREESURFER=${FREESURFER_HOME}
-RUN  wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2-patch/mri_sclimbic/mri_sclimbic_seg && \
-     mv mri_sclimbic_seg $FREESURFER/python/scripts/mri_sclimbic_seg && \
-     chmod +x $FREESURFER/python/scripts/mri_sclimbic_seg && \
-     wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2-patch/segment_subregions/core.py && \
-     mv core.py $FREESURFER/python/packages/freesurfer/subregions && \
-     wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2-patch/synthsr/mri_synthsr && \
-     mv mri_synthsr $FREESURFER_HOME/python/scripts/mri_synthsr && \
-     echo "PlaceMMPialSurf --mm_min_inside 50 --mm_max_inside 200 --mm_min_outside 10 --mm_max_outside 5" > /subjects_dir/global-expert-options.txt
-
-
-# install correct mcr for freesurfer subregion segmentation
-RUN fs_install_mcr R2019b
-
-RUN ldconfig
 WORKDIR /opt/work
-RUN chmod -R +x /opt/bin
+RUN ldconfig &&\
+    chmod -R +x /opt/bin &&\
+    rm -rf /tmp/* &&\
+    rm -rf /opt/tmp/*
 ENTRYPOINT ["/opt/bin/startup.sh"]
 
 

@@ -1,19 +1,20 @@
-panproc-minimal v0.2 build: 04/07/2024
+panproc-minimal v0.3 build: 03/03/2025
 
 
-Container for PAN pipeline processing using CUDA Toolkit 9.1 with applications: 
+Container for PAN pipeline with applications: 
 ------------------------------------------------------------------------------ 
-	* FSL 6.0.7.4 
+	* FSL 6.0.7.16 
 	* Mrtrix3 v3.0.4 
 	* Freesurfer 7.3.2 with known issues patched (See Additional Notes) 
 	* ANTS v2.5.0 
+	* ITKSnap v4.2.2 
 	* HCP Workbench (wb_view and wb_command) v1.5.0
 
 
 Additional Notes: 
 ----------------- 
-	* Run mrview as follows 'docker run aacazxnat/panproctools --libpriority=/opt/fsl/lib mrview'  
-	  because of qt library clash with freeview 
+	* Run all GUI-based apps e.g mrview, fsl, freeview, fsleyes with LD_LIBRARY_PATH={empty string}'  
+	  because of library clashes 
 	* Freesurfer 7.3.2 has required patches applied for known issues. If performing Pial surface placement  
 	  with FLAIR images then obtain global-expert-options.txt from within folder at /subjects_dir
 
